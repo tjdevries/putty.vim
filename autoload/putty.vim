@@ -1,17 +1,45 @@
 
 ""
 " open a putty window
-function! putty#open() abort
-  call putty#close()
-
-  if !exists('g:_my_pw')
-    let g:_my_pw = inputsecret('logging in: ')
+" @param[optional] (dictionary) login_options: Options to login:
+"   'username'
+"   'host'
+" @param[optional] (dictionary) display_options: The options to pass to putty#open_display
+function! putty#open(...) abort
+  let login_options = {}
+  if a:0 > 0
+    let login_options = a:1
   endif
 
-  let g:putty_job_id = jobstart(['C:\Program Files (x86)\PuTTY\plink.exe', '-pw', g:_my_pw, 'tdevries@epic-cde'], {
-        \ 'on_stdout': { id, data, event -> putty#display(id, data, event)},
-        \ 'on_stderr': { id, data, event -> putty#display(id, data, event)},
-        \ })
+  if has_key(login_options, 'username')
+    let username = login_options.username
+  else
+    let username = input('Username: ')
+  endif
+
+  if has_key(login_options, 'host')
+    let host = login_options.host
+  else
+    let host = input('Host: ')
+  endif
+
+  let display_options = g:putty_default_window_options
+  if a:0 > 1
+    let display_options = a:2
+  endif
+
+  call putty#close()
+  call putty#open_display(display_options)
+
+  let g:putty_job_id = jobstart(
+        \ [g:putty_default_plink_location, '-pw', inputsecret('logging in pw: '), username . '@' . host],
+        \ {
+          \ 'on_stdout': { id, data, event -> putty#display(id, data, event)},
+          \ 'on_stderr': { id, data, event -> putty#display(id, data, event)},
+          \ }
+        \ )
+
+  return g:putty_job_id
 endfunction
 
 ""
@@ -64,36 +92,16 @@ function! putty#send(text, ...) abort
 endfunction
 
 
-function! putty#start() abort
-  call putty#open()
-  call putty#send("epicmenu")
-  call putty#send("1")
-  call putty#send("dev")
-  call putty#send("dev")
-  call putty#send("25832")
-  call putty#send("epic")
-  call putty#send("d ^%ZeW")
-endfunction
-
-function! putty#test() abort
-  call putty#open()
-  call putty#send("epicmenu")
-  call putty#send("1")
-  call putty#send("dev", "\r")
-  call putty#send("dev", "\r")
-  call putty#send("25832", "\r")
-  call putty#send("epic", "\r")
-  call putty#send("d ^%ZeW", "\r")
-  call putty#send(";i LPL 325", "\r\n")
-  call putty#send(';i LPL 325', "\r", v:true)
-  call putty#send(';h LPL 325', "\r")
-endfunction
-
 ""
 " Open the display if it's not there
-function! putty#open_display() abort
+function! putty#open_display(...) abort
+  let opts = get(g:, 'putty_default_window_options', {})
+  if a:0 > 0
+    let opts = a:1
+  endif
+
   if !exists('g:putty_buffer_id') || g:putty_buffer_id == -1
-    call std#window#temp({'filetype': 'lookitt', 'concealcursor': 'n'})
+    call std#window#temp(opts)
 
     let g:putty_buffer_id = nvim_buf_get_number(0)
     call nvim_buf_set_name(g:putty_buffer_id, '[Putty Results]' . g:putty_buffer_id)
