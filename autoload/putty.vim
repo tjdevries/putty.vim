@@ -59,24 +59,28 @@ endfunction
 
 ""
 " Send info to my putty
-" TODO: Change the carriage_return thing
+" @param[optional] clear_display (boolean): Clear the display before sending
+" @param[optional] clear_result (boolean): Clear the last result we've gotten
+" @param[optional] carriage_return (string): The string we want to send as a
+"       carraige return
 function! putty#send(text, ...) abort
-  let carriage_return = "\<CR>"
-  if a:0 > 0
-    let carriage_return = a:1
-  endif
-
   let clear_display = v:false
-  if a:0 > 1
-    let clear_display = a:2
+  if a:0 > 0
+    let clear_display = a:1
     if clear_display
       call putty#set_last_result([])
     endif
   endif
 
-  if a:0 > 2
+  if a:0 > 1
     call putty#set_last_result([])
   endif
+
+  let carriage_return = "\<CR>"
+  if a:0 > 2
+    let carriage_return = a:3
+  endif
+
 
 
   if !exists('g:putty_job_id') || g:putty_job_id == -1
