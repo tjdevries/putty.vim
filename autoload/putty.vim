@@ -59,6 +59,7 @@ endfunction
 
 ""
 " Send info to my putty
+" TODO: Change the carriage_return thing
 function! putty#send(text, ...) abort
   let carriage_return = "\<CR>"
   if a:0 > 0
@@ -89,6 +90,11 @@ function! putty#send(text, ...) abort
 
   call std#window#view(g:putty_buffer_id)
   call jobsend(g:putty_job_id, a:text . carriage_return)
+
+  " This just gives us a little time to get the response
+  " before we go ahead and do anything else.
+  " You might sometimes still have to put in "sleep ..." in your code.
+  call putty#wait()
 endfunction
 
 
@@ -149,4 +155,11 @@ endfunction
 " Set last result
 function! putty#set_last_result(result) abort
   let g:_putty_last_result = a:result
+endfunction
+
+""
+" Wait the default amount of time
+" set by g:putty_default_wait_timj
+function! putty#wait() abort
+  call execute('sleep ' . g:putty_default_wait_time)
 endfunction
