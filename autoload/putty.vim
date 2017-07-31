@@ -32,7 +32,11 @@ function! putty#open(...) abort
   call putty#open_display(display_options)
 
   let g:putty_job_id = jobstart(
-        \ [g:putty_default_plink_location, '-pw', inputsecret('logging in pw: '), username . '@' . host],
+        \ [g:putty_default_plink_location,
+          \ '-batch',
+          \ '-pw', inputsecret(printf('logging in pw for %s@%s: ', username, host)),
+          \ username . '@' . host
+          \ ],
         \ {
           \ 'on_stdout': { id, data, event -> putty#display(id, data, event)},
           \ 'on_stderr': { id, data, event -> putty#display(id, data, event)},
@@ -131,7 +135,10 @@ function! putty#display(id, data, event) abort
   " Get rid of ugly line indexes
   for index in range(len(a:data))
     let a:data[index] = substitute(a:data[index], "", '', 'g')
+    " let a:data[index] = index . ':  ' . a:data[index]
   endfor
+
+  " TODO: Buffer lines that aren't really finished
 
   " call nvim_buf_set_lines(g:putty_buffer_id,  0, -1, v:false, [])
   call nvim_buf_set_lines(g:putty_buffer_id,  -1, -1, v:false, a:data)
