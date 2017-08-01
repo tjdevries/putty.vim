@@ -1,6 +1,8 @@
-" TODO: Change this to a nicer option setting
-let g:putty_default_window_options = {'filetype': 'lookitt', 'concealcursor': 'n'}
-let g:putty_default_plink_location = 'C:\Program Files (x86)\PuTTY\plink.exe'
-
-" 10 millisecond default wait time after sending
-let g:putty_default_wait_time = '10m'
+" Options are set using the api
+" call putty#configuration#set(area, setting, value)
+"
+" and can be viewed with
+" call putty#configuration#get(area, setting)
+"
+" to view the dictionary
+" call putty#configuration#view()

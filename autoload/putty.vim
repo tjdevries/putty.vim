@@ -23,7 +23,7 @@ function! putty#open(...) abort
     let host = input('Host: ')
   endif
 
-  let display_options = g:putty_default_window_options
+  let display_options = putty#configuration#get('defaults', 'window_options')
   if a:0 > 1
     let display_options = a:2
   endif
@@ -32,7 +32,7 @@ function! putty#open(...) abort
   call putty#open_display(display_options)
 
   let g:putty_job_id = jobstart(
-        \ [g:putty_default_plink_location,
+        \ [putty#configuration#get('defaults', 'plink_location'),
           \ '-batch',
           \ '-pw', inputsecret(printf('logging in pw for %s@%s: ', username, host)),
           \ username . '@' . host
@@ -170,7 +170,6 @@ endfunction
 
 ""
 " Wait the default amount of time
-" set by g:putty_default_wait_timj
 function! putty#wait() abort
-  call execute('sleep ' . g:putty_default_wait_time)
+  call execute('sleep ' . putty#configuration#get('defaults', 'wait_time'))
 endfunction
