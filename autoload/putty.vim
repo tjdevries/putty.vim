@@ -1,3 +1,15 @@
+let s:p_obj = {
+      \ 'channel_id': v:null,
+      \ }
+
+
+function! s:p_obj.set_channel(id) abort dict
+  let self.channel_id = a:id
+endfunction
+
+function! s:p_obj.get_channel() abort dict
+  return self.channel_id
+endfunction
 
 ""
 " open a putty window
@@ -68,23 +80,24 @@ endfunction
 " @param[optional] carriage_return (string): The string we want to send as a
 "       carraige return
 function! putty#send(text, ...) abort
-  let clear_display = v:false
-  if a:0 > 0
-    let clear_display = a:1
-    if clear_display
-      call putty#set_last_result([])
-    endif
-  endif
+  let opts = a:0 > 0 ? a:1 : {}
 
-  if a:0 > 1
+  " Check to make sure we have valid keys.
+  " This prevents us from making sad typos
+  let allowed_items = ['channel_id', 'clear_display', 'clear_history', 'carriage_return']
+  for key in keys(opts)
+    if index(allowed_items, key) < 0
+      throw '[PUTTY] Key "' . key . '" is not allowed'
+    endif
+  endfor
+
+  let channel_id = get(opts, 'channel_id', p_obj.get_channel())
+  let clear_display = get(opts, 'clear_display', v:false)
+  let carriage_return = get(opts, 'carriage_return', "\<CR>")
+
+  if clear_display || get(opts, 'clear_history', v:false)
     call putty#set_last_result([])
   endif
-
-  let carriage_return = "\<CR>"
-  if a:0 > 2
-    let carriage_return = a:3
-  endif
-
 
 
   if !exists('g:putty_job_id') || g:putty_job_id == -1
