@@ -37,3 +37,7 @@ endfunction
 function! putty#configuration#menu() abort
   return conf#menu(s:)
 endfunction
+
+function! putty#configuration#docs() abort
+  return conf#doc(s:)
+endfunction
