@@ -1,14 +1,53 @@
 let s:p_obj = {
-      \ 'channel_id': v:null,
+      \ 'current_channel': v:null,
+      \ 'active_channels': {},
+      \ 'active_buffers': {},
       \ }
 
 
-function! s:p_obj.set_channel(id) abort dict
-  let self.channel_id = a:id
+function! s:p_obj.new_channel(conn, id, set_current) abort dict
+  let self.active_channels[a:conn] = a:id
+
+  if a:set_current
+    call s:p_obj.set_current_channel(a:conn)
+  endfunction
 endfunction
 
-function! s:p_obj.get_channel() abort dict
-  return self.channel_id
+function! s:p_obj.close_channel(conn) abort dict
+  if self.get_channel_id(a:conn) > 0
+    call jobclose(self.get_channel_id(a:conn))
+    unlet self.active_channels[a:conn]
+  endif
+endfunction
+
+function! s:p_obj.get_channel_id(conn) abort dict
+  return has_key(self.active_channels, a:conn) ?
+        \ self.active_channels[a:conn]
+        \ : -1
+endfunction
+
+function! s:p_obj.set_current_channel(conn) abort dict
+  let self.current_channel = a:conn
+endfunction
+
+function! s:p_obj.get_current_channel_id() abort dict
+  return self.get_channel_id(self.current_channel)
+endfunction
+
+function! s:p_obj.set_buffer(conn, buffer_id) abort dict
+  if self.get_channel_id(a:conn) != -1
+    let self.active_buffers[a:conn] = a:buffer_id
+  endif
+endfunction
+
+function! s:p_obj.get_buffer(conn) abort dict
+  return has_key(self.active_buffers, a:conn) ?
+        \ self.active_buffers[a:conn]
+        \ : -1
+endfunction
+
+function! s:p_obj.get_current_buffer() abort dict
+  return self.get_buffer(self.current_channel)
 endfunction
 
 ""
@@ -35,19 +74,21 @@ function! putty#open(...) abort
     let host = input('Host: ')
   endif
 
+  let connection_info = username . '@' . host
+
   let display_options = putty#configuration#get('defaults', 'window_options')
   if a:0 > 1
     let display_options = a:2
   endif
 
-  call putty#close()
-  call putty#open_display(display_options)
+  call putty#close(connection_info)
+  call putty#open_display(connection_info, display_options)
 
-  let g:putty_job_id = jobstart(
+  let job_id = jobstart(
         \ [putty#configuration#get('defaults', 'plink_location'),
           \ '-batch',
-          \ '-pw', inputsecret(printf('logging in pw for %s@%s: ', username, host)),
-          \ username . '@' . host
+          \ '-pw', inputsecret(printf('logging in pw for %s: ', connection_info)),
+          \ connection_info
           \ ],
         \ {
           \ 'on_stdout': { id, data, event -> putty#display(id, data, event)},
@@ -55,43 +96,40 @@ function! putty#open(...) abort
           \ }
         \ )
 
-  return g:putty_job_id
+  call s:p_obj.new_channel(connection_info, job_id, v:true)
+
+  return connection_info
 endfunction
 
 ""
 " Close a putty window
-function! putty#close() abort
-  if exists('g:putty_job_id')
-    try
-      call jobclose(g:putty_job_id)
-    catch
-    endtry
-  endif
-
-  let g:putty_job_id = -1
-
+function! putty#close(connection_info) abort
+  call s:p_obj.close_channel(a:connection_info)
   call putty#clear()
 endfunction
 
 ""
 " Send info to my putty
-" @param[optional] clear_display (boolean): Clear the display before sending
-" @param[optional] clear_result (boolean): Clear the last result we've gotten
-" @param[optional] carriage_return (string): The string we want to send as a
-"       carraige return
+" @param[optional] opts.connection_info (string): The user@host combination that we're connectioned to
+" @param[optional] opts.clear_display (boolean): Clear the display before sending
+" @param[optional] opts.clear_result (boolean): Clear the last result we've gotten
+" @param[optional] opts.carriage_return (string): The string we want to send as a carraige return
 function! putty#send(text, ...) abort
   let opts = a:0 > 0 ? a:1 : {}
 
   " Check to make sure we have valid keys.
   " This prevents us from making sad typos
-  let allowed_items = ['channel_id', 'clear_display', 'clear_history', 'carriage_return']
+  let allowed_items = ['connection_info', 'clear_display', 'clear_history', 'carriage_return']
   for key in keys(opts)
     if index(allowed_items, key) < 0
       throw '[PUTTY] Key "' . key . '" is not allowed'
     endif
   endfor
 
-  let channel_id = get(opts, 'channel_id', p_obj.get_channel())
+  let connection_info = get(opts, 'connection_info', v:null)
+  let channel_id = connection_info != v:null ?
+        \ p_obj.get_channel_id(connection_info)
+        \ : p_obj.get_current_channel_id())
   let clear_display = get(opts, 'clear_display', v:false)
   let carriage_return = get(opts, 'carriage_return', "\<CR>")
 
@@ -100,9 +138,9 @@ function! putty#send(text, ...) abort
   endif
 
 
-  if !exists('g:putty_job_id') || g:putty_job_id == -1
-    echom "[PUTTY] THIS SHOULD NOT BE HAPPENING"
-    call putty#open()
+  if channel_id < 0
+    echom "[PUTTY] Initializing connection. No previous connection for " . connection_info
+    let connection_info = putty#open()
   endif
 
   if clear_display
@@ -122,16 +160,18 @@ endfunction
 ""
 " Open the display if it's not there
 function! putty#open_display(...) abort
+  let connection_info = a:0 > 0 ? a:1 : p_obj.current_channel
+
   let opts = get(g:, 'putty_default_window_options', {})
-  if a:0 > 0
-    let opts = a:1
+  if a:0 > 1
+    let opts = a:2
   endif
 
-  if !exists('g:putty_buffer_id') || g:putty_buffer_id == -1
+  if s:p_obj.get_buffer(a:connection_info) == -1
     call std#window#temp(opts)
 
-    let g:putty_buffer_id = nvim_buf_get_number(0)
-    call nvim_buf_set_name(g:putty_buffer_id, '[Putty Results]' . g:putty_buffer_id)
+    call s:p_obj.set_buffer(a:connection_info, nvim_buf_get_number(0))
+    call nvim_buf_set_name(g:putty_buffer_id, '[Putty Results] ' . connection_info)
 
     " If we can escape ansi items, do it
     if exists(':AnsiEsc')
@@ -169,6 +209,7 @@ function! putty#clear() abort
   endif
 endfunction
 
+" TODO: Need to change these to be able to be multiplexed
 ""
 " Get last result
 function! putty#get_last_result() abort
