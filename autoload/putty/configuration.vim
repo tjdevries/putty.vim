@@ -39,5 +39,5 @@ function! putty#configuration#menu() abort
 endfunction
 
 function! putty#configuration#docs() abort
-  return conf#doc(s:)
+  return conf#docs#generate(s:)
 endfunction
