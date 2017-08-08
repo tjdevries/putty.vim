@@ -9,6 +9,7 @@ call conf#add_setting(s:, 'defaults', 'plink_location', {
         \ 'type': v:t_string,
         \ 'default': 'C:\Program Files (x86)\PuTTY\plink.exe',
         \ 'description': 'Full path with executable name and extension',
+        \ 'prompt': 'Set the full path. (Don''t forget to include .exe)',
         \ 'validator': {val -> executable(val) },
         \ })
 call conf#add_setting(s:, 'defaults', 'window_options', {
@@ -23,11 +24,15 @@ call conf#add_setting(s:, 'defaults', 'wait_time', {
         \ })
 
 function! putty#configuration#get(area, setting) abort
-  call conf#get_setting(s:, a:area, a:setting)
+  return conf#get_setting(s:, a:area, a:setting)
 endfunction
 
 function! putty#configuration#set(area, setting, value) abort
-  call conf#set_setting(s:, a:area, a:setting, a:value)
+  return conf#set_setting(s:, a:area, a:setting, a:value)
+endfunction
+
+function! putty#configuration#set_prompt(area, setting) abort
+  return conf#set_setting_prompt(s:, a:area, a:setting)
 endfunction
 
 function! putty#configuration#view() abort
