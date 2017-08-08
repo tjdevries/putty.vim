@@ -14,6 +14,9 @@ defaults.wait_time                                    *Putty.defaults.wait_time*
   To configure:
     `call putty#configuration#set("defaults", "wait_time", <value>)`
 
+  To view:
+    `echo putty#configuration#get("defaults", "wait_time")`
+
 
 defaults.plink_location                          *Putty.defaults.plink_location*
 
@@ -32,6 +35,9 @@ defaults.plink_location                          *Putty.defaults.plink_location*
   To configure:
     `call putty#configuration#set("defaults", "plink_location", <value>)`
 
+  To view:
+    `echo putty#configuration#get("defaults", "plink_location")`
+
 
 defaults.window_options                          *Putty.defaults.window_options*
 
@@ -42,4 +48,7 @@ defaults.window_options                          *Putty.defaults.window_options*
 
   To configure:
     `call putty#configuration#set("defaults", "window_options", <value>)`
+
+  To view:
+    `echo putty#configuration#get("defaults", "window_options")`
 
