@@ -23,6 +23,19 @@ call conf#add_setting(s:, 'defaults', 'wait_time', {
         \ 'description': 'Wait time after sending a message through putty',
         \ })
 
+call conf#add_area(s:, 'terminal')
+call conf#add_setting(s:, 'terminal', 'new_line_marker', {
+      \ 'type': v:t_string,
+      \ 'default': "\r",
+      \ 'description': 'The term codes or line endings representing the end of a line.',
+      \ })
+call conf#add_setting(s:, 'terminal', 'carriage_return', {
+      \ 'type': v:t_string,
+      \ 'default': '\<CR>',
+      \ 'description': 'Use this setting to choose what to send as a carriage return to putty',
+      \ })
+
+
 function! putty#configuration#get(area, setting) abort
   return conf#get_setting(s:, a:area, a:setting)
 endfunction
