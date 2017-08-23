@@ -270,9 +270,13 @@ function! putty#display(id, data, event) abort
     let lines[index] = substitute(lines[index], '\s*$', '', 'g')
   endfor
 
-  call nvim_buf_set_lines(s:p_obj.get_buffer(a:id),  -1, -1, v:false, lines)
+  call putty#display_list(a:id, lines, a:event)
 
   call extend(putty#get_last_result(a:id), lines)
+endfunction
+
+function! putty#display_list(id, data, event) abort
+  call nvim_buf_set_lines(s:p_obj.get_buffer(a:id),  -1, -1, v:false, a:data)
 endfunction
 
 ""
