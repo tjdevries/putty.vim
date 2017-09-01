@@ -57,5 +57,5 @@ function! putty#configuration#menu() abort
 endfunction
 
 function! putty#configuration#docs() abort
-  return conf#docs#generate(s:, expand('<sfile>'))
+  return conf#docs#generate(s:, 'putty#configuration#')
 endfunction
